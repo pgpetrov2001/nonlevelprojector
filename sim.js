@@ -63,6 +63,16 @@ let triangles = [
     [0,2,3],
     [1,2,3],
 ];
+let gridPoints = [];
+for (let z=1; z<=5; z++) {
+    gridPoints[z] = [];
+    for (let y=0; y<5; y++) {
+        gridPoints[z][y] = [];
+        for (let x=0; x<5; x++) {
+            gridPoints[z][y][x] = {x:x,y:y,z:z};
+        }
+    }
+}
 
 let camera = {
     x: 0,
@@ -107,35 +117,10 @@ const transform = (p,M) => {
     return pt;
 };
 
+const colors = ['red', 'green', 'blue', 'yellow', 'orange', 'brown', 'pink', 'purple', 'magenta', 'black', 'violet', 'mint', 'lime', 'navy', 'cobalt'];
+
 function draw() {
     context.strokeRect(0,0,canvas.width,canvas.height);
-    let segs = [];
-    for (let tr of triangles) 
-        for (let seg of tr.map((p) => [points[p],points[(p+1)%3]])) {
-            seg.mark = tr;
-            segs.push(seg);
-        }
-
-    for (let y=0; y<5; y++) 
-        for (let z=1; z<=5; z++) 
-            segs.push([
-                {x:0,y:y,z:z},
-                {x:4,y:y,z:z},
-            ]);
-
-    for (let x=0; x<5; x++) 
-        for (let y=0; y<5; y++) 
-            segs.push([
-                {x:x,y:y,z:1},
-                {x:x,y:y,z:5},
-            ]);
-
-    for (let x=0; x<5; x++) 
-        for (let z=1; z<=5; z++) 
-            segs.push([
-                {x:x,y:0,z:z},
-                {x:x,y:4,z:z},
-            ]);
 
     const M = inverse([
         camera.xbase,
@@ -146,8 +131,37 @@ function draw() {
         )
     ]);
 
+    let trPoints = points.map((p)=>transform(p,M));
+    let trgPoints = gridPoints.map((l)=>l.map((r)=>r.map((p)=>transform(p,M))));
+
+    let segs = [];
+    for (let tr of triangles) 
+        for (let seg of tr.map((p,i) => [trPoints[tr[i]],trPoints[tr[(i+1)%3]]])) {
+            segs.push(seg);
+        }
+
+    for (let z=1; z<=5; z++)
+        for (let y=0; y<5; y++)
+            for (let x=0; x<5; x++) {
+                if (x+1<5) {
+                    segs.push([trgPoints[z][y][x], trgPoints[z][y][x+1]]); 
+                }
+                if (y+1<5) {
+                    segs.push([trgPoints[z][y][x], trgPoints[z][y+1][x]]); 
+                }
+                if (z+1<=5) {
+                    segs.push([trgPoints[z][y][x], trgPoints[z+1][y][x]]); 
+                }
+            }
+
+    for (let i=0; i<trPoints.length; i++) {
+        context.fillStyle = colors[i];
+        context.beginPath();
+        context.arc(trPoints[i].x, trPoints[i].y, 5, 0, 2*Math.PI);
+        context.fill();
+    }
+
     for (let seg of segs) {
-        seg = [transform(seg[0],M), transform(seg[1],M)];
         context.beginPath();
         context.moveTo(seg[0].x, seg[0].y);
         context.lineTo(seg[1].x, seg[1].y);
